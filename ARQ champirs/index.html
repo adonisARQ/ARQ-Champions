@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ARQ Champions</title>
+  <link rel="icon" type="image/png" href="icono.png" />
+  <link rel="apple-touch-icon" href="icono.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<div id="oneshot-overlay" class="hidden"></div>
+
+<header class="app-header">
+  <div class="header-logo">
+    <span class="logo-icon">⚡</span>
+    <span class="logo-text">ARQ<span class="logo-accent">Champions</span></span>
+  </div>
+  <div id="net-status" class="net-status online">●</div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="combat"><span class="tab-icon">⚔️</span><span>Combate</span></button>
+  <button class="tab-btn" data-tab="team"><span class="tab-icon">🛡️</span><span>Equipo</span></button>
+  <button class="tab-btn" data-tab="ai"><span class="tab-icon">🤖</span><span>IA Táctica</span></button>
+  <button class="tab-btn" data-tab="compare"><span class="tab-icon">⚖️</span><span>Comparar</span></button>
+  <button class="tab-btn" data-tab="dex"><span class="tab-icon">📖</span><span>Pokédex</span></button>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     COMBATE — Centro de Mando completo
+     ══════════════════════════════════════════ -->
+<section id="tab-combat" class="tab-content active">
+
+  <!-- Equipo Enemigo -->
+  <div class="section-card search-card-overflow">
+    <h2 class="section-title">☠️ Equipo Enemigo</h2>
+    <p class="section-hint">Agrega rivales conforme aparezcan. Toca una tarjeta para configurar sus stats. Toca ☠️ para marcar KO.</p>
+    <div class="search-wrap">
+      <input type="text" id="enemy-search" class="search-input" placeholder="Ej: Garchomp, Mega Mewtwo X..." autocomplete="off" />
+      <div id="enemy-suggestions" class="suggestions-list hidden"></div>
+    </div>
+    <div id="enemy-team-grid" class="enemy-team-grid"></div>
+    <div class="battle-btn-row">
+      <button id="btn-clear-enemies" class="btn-secondary-sm">🗑️ Nueva batalla</button>
+      <button id="btn-save-battle" class="btn-accent-sm">💾 Guardar batalla</button>
+    </div>
+  </div>
+
+  <!-- Centro de Mando -->
+  <div id="combat-analysis" class="section-card hidden">
+    <h2 class="section-title">🧠 Centro de Mando</h2>
+
+    <div id="no-team-warning" class="verdict-box tie hidden">
+      ⚠️ Ve a <strong>Equipo</strong> y agrega tus personajes primero.
+    </div>
+
+    <!-- Mejor pick con OHKO/2HKO -->
+    <div id="best-pick-block" class="hidden">
+      <p class="analysis-label">🏆 MEJOR OPCIÓN AHORA:</p>
+      <div id="best-pick-card" class="best-pick-card"></div>
+    </div>
+
+    <!-- Trío óptimo -->
+    <div id="best-combo-block" class="hidden">
+      <p class="analysis-label" style="margin-top:18px;">⚔️ TRÍO ÓPTIMO:</p>
+      <div id="combat-synergy-result" class="synergy-result"></div>
+    </div>
+
+    <!-- Ranking con OHKO badges -->
+    <div id="team-ranking-block" class="hidden">
+      <p class="analysis-label" style="margin-top:16px;">📊 Ranking + KO predicción:</p>
+      <div id="team-ranking-list" class="team-ranking-list"></div>
+    </div>
+
+    <!-- Tipos amenaza -->
+    <div class="analysis-block" style="margin-top:16px;">
+      <p class="analysis-label">🎯 Tipos del equipo rival:</p>
+      <div id="enemy-threat-list" class="weakness-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     EQUIPO — Gestión
+     ══════════════════════════════════════════ -->
+<section id="tab-team" class="tab-content hidden">
+  <div class="section-card search-card-overflow">
+    <div class="team-header-row">
+      <h2 class="section-title" style="margin-bottom:0;">🛡️ Mi Equipo</h2>
+      <span id="save-indicator" class="save-indicator">💾 Guardado</span>
+    </div>
+    <p class="section-hint" style="margin-top:8px;">Toca ✏️ para configurar stats reales, movimientos y naturaleza.</p>
+    <div class="search-wrap" style="margin-top:12px;">
+      <input type="text" id="team-search" class="search-input" placeholder="Agregar personaje al equipo..." autocomplete="off" />
+      <div id="team-suggestions" class="suggestions-list hidden"></div>
+    </div>
+  </div>
+  <div id="team-slots" class="team-grid"></div>
+
+  <!-- Export / Import -->
+  <div class="section-card">
+    <h2 class="section-title">📤 Exportar / Importar</h2>
+    <div class="export-row">
+      <button id="btn-export" class="btn-primary-sm">📤 Exportar equipo</button>
+      <button id="btn-import" class="btn-primary-sm">📥 Importar equipo</button>
+    </div>
+    <textarea id="import-box" class="import-textarea hidden" placeholder="Pega aquí el JSON exportado..."></textarea>
+    <button id="btn-import-confirm" class="btn-primary hidden" style="margin-top:8px;">✅ Confirmar importación</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     IA TÁCTICA — Escáner + Análisis Claude
+     ══════════════════════════════════════════ -->
+<section id="tab-ai" class="tab-content hidden">
+
+  <!-- MÓDULO 1: Escáner de equipo rival con foto -->
+  <div class="section-card">
+    <h2 class="section-title">📸 Escáner de Equipo Rival</h2>
+    <p class="section-hint">Toma una foto de la pantalla del rival cuando muestre sus 6 Pokémon. La IA los identificará automáticamente.</p>
+
+    <label class="scanner-upload-label" for="scanner-photo-input">
+      <span class="scanner-upload-icon">📷</span>
+      <span class="scanner-upload-text">Toca para subir foto o tomar foto</span>
+      <input type="file" id="scanner-photo-input" accept="image/*" capture="environment" style="display:none;" />
+    </label>
+
+    <div id="scanner-preview-wrap" class="scanner-preview-wrap hidden">
+      <img id="scanner-preview-img" class="scanner-preview-img" src="" alt="Vista previa" />
+      <button id="btn-scanner-clear" class="scanner-clear-btn">✕ Quitar foto</button>
+    </div>
+
+    <button id="btn-scan" class="btn-scan hidden">
+      🤖 Identificar Pokémon con IA
+    </button>
+
+    <!-- Resultado del escáner -->
+    <div id="scanner-result" class="scanner-result hidden">
+      <p class="analysis-label" style="margin-bottom:8px;">✅ Pokémon identificados:</p>
+      <div id="scanner-pokemon-list" class="scanner-pokemon-list"></div>
+      <button id="btn-load-scanned" class="btn-primary" style="margin-top:12px;">
+        ⚔️ Cargar como Equipo Enemigo en Combate
+      </button>
+    </div>
+
+    <div id="scanner-error" class="scanner-error hidden"></div>
+  </div>
+
+  <!-- MÓDULO 2: Análisis Táctico con IA (Claude) -->
+  <div class="section-card">
+    <h2 class="section-title">🧠 Análisis Táctico con IA</h2>
+    <p class="section-hint">La IA analiza tu equipo completo vs el equipo rival, detecta sinergias, riesgos y te recomienda el trío y el abridor ideal.</p>
+
+    <div class="ai-context-row">
+      <div class="ai-context-item">
+        <span class="ai-context-label">Mi equipo</span>
+        <span id="ai-my-team-count" class="ai-context-value">0 / 6</span>
+      </div>
+      <div class="ai-context-item">
+        <span class="ai-context-label">Equipo rival</span>
+        <span id="ai-enemy-count" class="ai-context-value">0 / 6</span>
+      </div>
+    </div>
+
+    <!-- Campo de contexto adicional opcional -->
+    <div style="margin-bottom:12px;">
+      <label class="stat-label" style="display:block;margin-bottom:5px;">📋 Contexto extra (opcional)</label>
+      <textarea id="ai-extra-context" class="notes-textarea" style="height:60px;"
+        placeholder="Ej: El rival suele abrir con Tyranitar. Estoy en el turno 1. Mi Whimsicott tiene 100% HP..."></textarea>
+    </div>
+
+    <button id="btn-ai-analyze" class="btn-ai-analyze">
+      ⚡ Analizar con IA → Recomiéndame el trío y abridor
+    </button>
+
+    <!-- Respuesta de la IA -->
+    <div id="ai-response-block" class="ai-response-block hidden">
+      <div class="ai-response-header">
+        <span class="ai-response-icon">🤖</span>
+        <span class="ai-response-title">Análisis Táctico ARQ Champions</span>
+      </div>
+      <div id="ai-response-text" class="ai-response-text"></div>
+      <div id="ai-response-trio" class="ai-response-trio hidden"></div>
+    </div>
+
+    <div id="ai-loading" class="ai-loading hidden">
+      <div class="ai-loading-spinner"></div>
+      <p class="ai-loading-text">La IA está analizando tu estrategia...</p>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════
+     COMPARADOR DIRECTO
+     ══════════════════════════════════════════ -->
+<section id="tab-compare" class="tab-content hidden">
+  <div class="section-card">
+    <h2 class="section-title">⚖️ Comparador Directo</h2>
+    <p class="section-hint">Selecciona dos de tus personajes y un enemigo para ver quién hace más daño lado a lado.</p>
+
+    <!-- Selector de enemigo objetivo -->
+    <div class="search-card-overflow" style="margin-bottom:12px;">
+      <p class="analysis-label">☠️ Enemigo objetivo:</p>
+      <div class="search-wrap">
+        <input type="text" id="cmp-enemy-search" class="search-input" placeholder="Busca el enemigo a comparar..." autocomplete="off" />
+        <div id="cmp-enemy-suggestions" class="suggestions-list hidden"></div>
+      </div>
+      <div id="cmp-enemy-display" class="cmp-enemy-display hidden"></div>
+    </div>
+
+    <!-- Selector de mis 2 Pokémon -->
+    <p class="analysis-label">🎮 Mis personajes a comparar:</p>
+    <div id="cmp-my-slots" class="cmp-my-slots">
+      <!-- Generado dinámicamente con los 6 de mi equipo -->
+      <p id="cmp-no-team" style="color:var(--text-dim);font-size:.85rem;">Agrega personajes a tu equipo primero.</p>
+    </div>
+  </div>
+
+  <!-- Resultado del comparador -->
+  <div id="cmp-result" class="hidden">
+    <!-- Panel de debilidades del enemigo seleccionado -->
+    <div id="cmp-weakness-panel" class="section-card cmp-weakness-panel">
+      <p class="analysis-label">⚠️ Debilidades del enemigo:</p>
+      <div id="cmp-weakness-list" class="weakness-list"></div>
+      <p class="analysis-label" style="margin-top:10px;">🛡️ Resistencias:</p>
+      <div id="cmp-resistance-list" class="weakness-list"></div>
+      <p class="analysis-label" style="margin-top:10px;">🚫 Inmunidades:</p>
+      <div id="cmp-immunity-list" class="weakness-list"></div>
+    </div>
+    <div class="cmp-split">
+      <div id="cmp-left" class="cmp-panel"></div>
+      <div class="cmp-vs">VS</div>
+      <div id="cmp-right" class="cmp-panel"></div>
+    </div>
+    <div id="cmp-verdict" class="cmp-verdict"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     HISTORIAL DE BATALLAS
+     ══════════════════════════════════════════ -->
+<section id="tab-history" class="tab-content hidden">
+  <div class="section-card">
+    <h2 class="section-title">📜 Historial de Batallas</h2>
+    <p class="section-hint">Cada batalla guardada muestra el equipo rival y el resultado. Toca una para recargarla en Combate.</p>
+    <div class="history-stats-row" id="history-stats"></div>
+  </div>
+
+  <div id="history-list" class="history-list">
+    <p id="no-history-msg" style="color:var(--text-dim);font-size:.85rem;padding:16px;text-align:center;">
+      Aún no hay batallas guardadas. Usa el botón "💾 Guardar batalla" en Combate.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     POKÉDEX
+     ══════════════════════════════════════════ -->
+<section id="tab-dex" class="tab-content hidden">
+  <div class="section-card search-card-overflow">
+    <h2 class="section-title">📖 Pokédex Táctica</h2>
+    <p class="section-hint">Stats, tipos, debilidades, OHKO estimado. Incluye Megas y formas.</p>
+    <div class="search-wrap">
+      <input type="text" id="dex-search" class="search-input" placeholder="Ej: Mewtwo, Mega Charizard X..." autocomplete="off" />
+      <div id="dex-suggestions" class="suggestions-list hidden"></div>
+    </div>
+  </div>
+  <div id="dex-card" class="section-card hidden">
+    <div class="dex-header">
+      <div class="dex-sprite-wrap">
+        <img id="dex-sprite-front" class="dex-sprite" src="" alt="" />
+        <button id="dex-sprite-toggle" class="dex-sprite-toggle">↺</button>
+      </div>
+      <div class="dex-header-info">
+        <h2 id="dex-name" class="dex-name"></h2>
+        <div id="dex-types" class="type-badges"></div>
+        <div id="dex-form-badge" class="dex-form-badge hidden"></div>
+        <p id="dex-number" class="dex-number"></p>
+        <div class="dex-meta-row">
+          <span id="dex-height" class="dex-meta-item"></span>
+          <span id="dex-weight" class="dex-meta-item"></span>
+        </div>
+      </div>
+    </div>
+    <div class="dex-section"><p class="analysis-label">📊 Estadísticas Base</p>
+      <div id="dex-stats" class="dex-stats-list"></div>
+      <div class="dex-stat-total-row"><span class="stat-label">TOTAL</span><span id="dex-stat-total" class="dex-stat-total"></span></div>
+    </div>
+    <div class="dex-section"><p class="analysis-label">⚠️ Debilidades</p><div id="dex-weaknesses" class="weakness-list"></div></div>
+    <div class="dex-section"><p class="analysis-label">🛡️ Resistencias</p><div id="dex-resistances" class="weakness-list"></div></div>
+    <div class="dex-section"><p class="analysis-label">🚫 Inmunidades</p><div id="dex-immunities" class="weakness-list"></div></div>
+    <div class="dex-section"><p class="analysis-label">💡 Habilidades</p><div id="dex-abilities" class="dex-abilities-list"></div></div>
+    <div class="dex-actions">
+      <button id="dex-add-team" class="btn-primary">➕ Agregar a mi Equipo</button>
+      <button id="dex-add-enemy" class="btn-secondary" style="margin-top:8px;">☠️ Agregar al Equipo Enemigo</button>
+    </div>
+  </div>
+  <div id="dex-history" class="section-card hidden">
+    <h2 class="section-title">🕐 Consultados recientemente</h2>
+    <div id="dex-history-list" class="dex-history-list"></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     MODAL EDITOR COMPETITIVO (Mi equipo)
+     ══════════════════════════════════════════ -->
+<div id="edit-modal" class="modal-overlay hidden">
+  <div class="modal-card edit-modal-card">
+    <div class="modal-header">
+      <img id="edit-sprite" src="" alt="" />
+      <div><h3 id="edit-name" class="modal-title"></h3>
+        <p class="section-hint" style="margin:0;font-size:.72rem;">✏️ Configuración Competitiva</p></div>
+    </div>
+    <div class="edit-tabs">
+      <button class="edit-tab active" data-etab="moves">⚔️ Moves</button>
+      <button class="edit-tab" data-etab="stats">📊 Stats</button>
+      <button class="edit-tab" data-etab="build">🎒 Build</button>
+    </div>
+    <div id="etab-moves" class="edit-tab-content">
+      <p class="section-hint">4 movimientos de este Pokémon.</p>
+      <div id="move-slots-container"></div>
+    </div>
+    <div id="etab-stats" class="edit-tab-content hidden">
+      <p class="section-hint">Introduce los stats <strong>exactos</strong> de tu juego.</p>
+      <div class="real-stats-grid">
+        <div class="real-stat-row"><label class="stat-label">PS</label><input type="number" id="rs-hp" class="stat-input" min="1" max="999" placeholder="—"/></div>
+        <div class="real-stat-row"><label class="stat-label">ATK</label><input type="number" id="rs-atk" class="stat-input" min="1" max="999" placeholder="—"/></div>
+        <div class="real-stat-row"><label class="stat-label">DEF</label><input type="number" id="rs-def" class="stat-input" min="1" max="999" placeholder="—"/></div>
+        <div class="real-stat-row"><label class="stat-label">AT.ESP</label><input type="number" id="rs-spatk" class="stat-input" min="1" max="999" placeholder="—"/></div>
+        <div class="real-stat-row"><label class="stat-label">DEF.ESP</label><input type="number" id="rs-spdef" class="stat-input" min="1" max="999" placeholder="—"/></div>
+        <div class="real-stat-row"><label class="stat-label">VEL</label><input type="number" id="rs-spd" class="stat-input" min="1" max="999" placeholder="—"/></div>
+      </div>
+      <p class="analysis-label" style="margin-top:14px;">🌿 Naturaleza</p>
+      <select id="rs-nature" class="stat-select"></select>
+      <p class="nature-hint" id="nature-hint"></p>
+    </div>
+    <div id="etab-build" class="edit-tab-content hidden">
+      <!-- Habilidad: select dinámico cargado desde la API -->
+      <div class="build-field">
+        <label class="stat-label">💡 Habilidad</label>
+        <div id="ability-loading" class="ability-loading hidden">⏳ Cargando habilidades...</div>
+        <select id="rs-ability" class="stat-select">
+          <option value="">Selecciona una habilidad...</option>
+        </select>
+      </div>
+      <!-- Objeto: input con autocomplete de items competitivos -->
+      <div class="build-field">
+        <label class="stat-label">🎒 Objeto</label>
+        <div class="item-ac-wrap" style="position:relative;z-index:60;">
+          <input type="text" id="rs-item" class="stat-input" placeholder="Ej: Banda Elegida, Vidasfera..." autocomplete="off"/>
+          <div id="item-suggestions" class="move-suggestions-inner hidden"></div>
+        </div>
+      </div>
+      <!-- ROL y ESTRATEGIA — campo clave para el análisis de IA -->
+      <div class="build-field">
+        <label class="stat-label">🎯 Rol en el Equipo</label>
+        <select id="rs-role" class="stat-select">
+          <option value="">Sin rol definido</option>
+          <option value="Abridor">⚡ Abridor — entra primero, establece condición</option>
+          <option value="Setter">🪤 Setter — pone trampas o pantallas</option>
+          <option value="Sweeper">💥 Sweeper — atacante principal</option>
+          <option value="Tanque">🛡️ Tanque — absorbe daño</option>
+          <option value="Pivot">🔄 Pivot — entra/sale generando momentum</option>
+          <option value="Cleaner">🧹 Cleaner — remata lo que queda débil</option>
+          <option value="Soporte">💊 Soporte — cura o apoya al equipo</option>
+        </select>
+      </div>
+      <div class="build-field">
+        <label class="stat-label">🔗 Estrategia / Sinergia</label>
+        <textarea id="rs-strategy" class="notes-textarea" style="height:80px;"
+          placeholder="Ej: Abridor del Equipo A. Usa Viento Afín con Timador para dar +1 VEL a todo el equipo antes que el rival. Chandelure necesita este boost para destruir con Erupción. Si cae sin actuar, el Plan A colapsa."></textarea>
+      </div>
+      <div class="build-field"><label class="stat-label">📝 Notas tácticas</label><textarea id="rs-note" class="notes-textarea" style="height:55px;" placeholder="Ej: Llevar solo cuando el rival no tiene Tyranitar..."></textarea></div>
+    </div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button id="edit-save" class="btn-primary">💾 Guardar configuración</button>
+      <button id="edit-close" class="btn-secondary" style="margin-top:8px;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL EDITOR RIVAL (Equipo Enemigo)
+     ══════════════════════════════════════════ -->
+<div id="enemy-edit-modal" class="modal-overlay hidden">
+  <div class="modal-card enemy-edit-card">
+    <div class="modal-header">
+      <img id="ee-sprite" src="" alt="" />
+      <div>
+        <h3 id="ee-name" class="modal-title" style="color:var(--neon-red);"></h3>
+        <p class="section-hint" style="margin:0;font-size:.72rem;">☠️ Stats del Rival — Lista Pública</p>
+      </div>
+    </div>
+
+    <!-- Selector de preset de PokéChampions -->
+    <div class="preset-section">
+      <p class="analysis-label">📋 Presets Competitivos Comunes</p>
+      <div id="ee-presets" class="presets-list"></div>
+    </div>
+
+    <p class="analysis-label" style="margin-top:12px;">O introduce sus stats manualmente:</p>
+    <div class="real-stats-grid">
+      <div class="real-stat-row"><label class="stat-label">PS</label><input type="number" id="ee-hp" class="stat-input stat-input-enemy" min="1" max="999" placeholder="—"/></div>
+      <div class="real-stat-row"><label class="stat-label">ATK</label><input type="number" id="ee-atk" class="stat-input stat-input-enemy" min="1" max="999" placeholder="—"/></div>
+      <div class="real-stat-row"><label class="stat-label">DEF</label><input type="number" id="ee-def" class="stat-input stat-input-enemy" min="1" max="999" placeholder="—"/></div>
+      <div class="real-stat-row"><label class="stat-label">AT.ESP</label><input type="number" id="ee-spatk" class="stat-input stat-input-enemy" min="1" max="999" placeholder="—"/></div>
+      <div class="real-stat-row"><label class="stat-label">DEF.ESP</label><input type="number" id="ee-spdef" class="stat-input stat-input-enemy" min="1" max="999" placeholder="—"/></div>
+      <div class="real-stat-row"><label class="stat-label">VEL</label><input type="number" id="ee-spd" class="stat-input stat-input-enemy" min="1" max="999" placeholder="—"/></div>
+    </div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button id="ee-save" class="btn-enemy-save">💾 Guardar stats del rival</button>
+      <button id="ee-close" class="btn-secondary" style="margin-top:8px;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<div id="loading" class="loading-overlay hidden">
+  <div class="loading-spinner"></div>
+  <p class="loading-text">Cargando datos...</p>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
