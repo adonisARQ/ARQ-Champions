@@ -3,6 +3,8 @@
 
 const https = require('https');
 
+const API_KEY = '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';
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -29,14 +31,13 @@ exports.handler = async (event) => {
   try {
     const body = JSON.parse(event.body);
 
-    // Usar https nativo de Node (sin fetch, funciona en cualquier versión)
-    const data = await new Promise((resolve, reject) => {
-      const payload = JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: body.max_tokens || 1000,
-        messages: body.messages,
-      });
+    const payload = JSON.stringify({
+      model: 'claude-opus-4-6',
+      max_tokens: body.max_tokens || 1000,
+      messages: body.messages,
+    });
 
+    const data = await new Promise((resolve, reject) => {
       const options = {
         hostname: 'api.anthropic.com',
         path: '/v1/messages',
@@ -44,7 +45,7 @@ exports.handler = async (event) => {
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(payload),
-          'x-api-key': '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',
+          'x-api-key': API_KEY,
           'anthropic-version': '2023-06-01',
         },
       };
@@ -53,12 +54,15 @@ exports.handler = async (event) => {
         let raw = '';
         res.on('data', chunk => raw += chunk);
         res.on('end', () => {
-          try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
-          catch(e) { reject(new Error('Respuesta inválida de la API')); }
+          try {
+            resolve({ status: res.statusCode, body: JSON.parse(raw) });
+          } catch(e) {
+            reject(new Error('Respuesta invalida: ' + raw.slice(0, 200)));
+          }
         });
       });
 
-      req.on('error', reject);
+      req.on('error', (e) => reject(new Error('Error de red: ' + e.message)));
       req.write(payload);
       req.end();
     });
@@ -67,7 +71,7 @@ exports.handler = async (event) => {
       return {
         statusCode: data.status,
         headers: CORS,
-        body: JSON.stringify({ error: data.body?.error?.message || 'Error de API' }),
+        body: JSON.stringify({ error: data.body?.error?.message || 'Error de API: ' + JSON.stringify(data.body) }),
       };
     }
 
