@@ -1,9 +1,6 @@
 // netlify/functions/claude.js
-// Proxy seguro — compatible con Node 14, 16, 18+
-
 const https = require('https');
-
-const API_KEY = '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';
+const API_KEY = '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';
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -17,26 +14,21 @@ exports.handler = async (event) => {
       body: '',
     };
   }
-
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
-
   const CORS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Type': 'application/json',
   };
-
   try {
     const body = JSON.parse(event.body);
-
     const payload = JSON.stringify({
-      model: 'claude-opus-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: body.max_tokens || 1000,
       messages: body.messages,
     });
-
     const data = await new Promise((resolve, reject) => {
       const options = {
         hostname: 'api.anthropic.com',
@@ -49,43 +41,27 @@ exports.handler = async (event) => {
           'anthropic-version': '2023-06-01',
         },
       };
-
       const req = https.request(options, (res) => {
         let raw = '';
         res.on('data', chunk => raw += chunk);
         res.on('end', () => {
-          try {
-            resolve({ status: res.statusCode, body: JSON.parse(raw) });
-          } catch(e) {
-            reject(new Error('Respuesta invalida: ' + raw.slice(0, 200)));
-          }
+          try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
+          catch(e) { reject(new Error('Respuesta invalida: ' + raw.slice(0,200))); }
         });
       });
-
-      req.on('error', (e) => reject(new Error('Error de red: ' + e.message)));
+      req.on('error', e => reject(new Error('Error de red: ' + e.message)));
       req.write(payload);
       req.end();
     });
-
     if (data.status !== 200) {
       return {
         statusCode: data.status,
         headers: CORS,
-        body: JSON.stringify({ error: data.body?.error?.message || 'Error de API: ' + JSON.stringify(data.body) }),
+        body: JSON.stringify({ error: data.body?.error?.message || JSON.stringify(data.body) }),
       };
     }
-
-    return {
-      statusCode: 200,
-      headers: CORS,
-      body: JSON.stringify(data.body),
-    };
-
+    return { statusCode: 200, headers: CORS, body: JSON.stringify(data.body) };
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers: CORS,
-      body: JSON.stringify({ error: err.message }),
-    };
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
   }
 };
