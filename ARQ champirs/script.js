@@ -18,11 +18,36 @@ const cache      = {};
 const LEVEL      = 50;
 
 const NATURES = {
-  'Hardy':[null,null],'Lonely':['atk','def'],'Brave':['atk','spd'],'Adamant':['atk','spatk'],'Naughty':['atk','spdef'],
-  'Bold':['def','atk'],'Docile':[null,null],'Relaxed':['def','spd'],'Impish':['def','spatk'],'Lax':['def','spdef'],
-  'Timid':['spd','atk'],'Hasty':['spd','def'],'Serious':[null,null],'Jolly':['spd','spatk'],'Naive':['spd','spdef'],
-  'Modest':['spatk','atk'],'Mild':['spatk','def'],'Quiet':['spatk','spd'],'Bashful':[null,null],'Rash':['spatk','spdef'],
-  'Calm':['spdef','atk'],'Gentle':['spdef','def'],'Sassy':['spdef','spd'],'Careful':['spdef','spatk'],'Quirky':[null,null],
+  'Resistente':[null,null],'Solitario':['atk','def'],'Corajudo':['atk','spd'],'Firme':['atk','spatk'],'Travieso':['atk','spdef'],
+  'Osado':['def','atk'],'Dócil':[null,null],'Relajado':['def','spd'],'Impasible':['def','spatk'],'Flojo':['def','spdef'],
+  'Tímido':['spd','atk'],'Apresurado':['spd','def'],'Serio':[null,null],'Alegre':['spd','spatk'],'Ingenuo':['spd','spdef'],
+  'Modesto':['spatk','atk'],'Leve':['spatk','def'],'Tranquilo':['spatk','spd'],'Tímido2':[null,null],'Erupción':['spatk','spdef'],
+  'Sereno':['spdef','atk'],'Amable':['spdef','def'],'Atrevido':['spdef','spd'],'Cuidadoso':['spdef','spatk'],'Peculiar':[null,null],
+};
+
+// Mapa inglés→español para habilidades venidas de la API
+const ABILITY_ES = {
+  'blaze':'Espesura','torrent':'Torrente','overgrow':'Espesura','static':'Electricidad estática',
+  'levitate':'Levitación','intimidate':'Intimidación','prankster':'Timador','hustle':'Entusiasmo',
+  'synchronize':'Sincronía','natural-cure':'Cura natural','thick-fat':'Sebo','flash-fire':'Flash fire',
+  'drought':'Sequía','drizzle':'Llovizna','sand-stream':'Chorro arena','snow-warning':'Aviso nieve',
+  'speed-boost':'Impulso','chlorophyll':'Clorofila','swift-swim':'Nado rápido','sand-rush':'Celeridad arena',
+  'slush-rush':'Celeridad nieve','unburden':'Ligereza','magic-guard':'Guardia mágica',
+  'wonder-guard':'Guardia maravilla','multiscale':'Multiescamas','regenerator':'Regeneración',
+  'contrary':'Contrario','serene-grace':'Gracia divina','technician':'Técnico',
+  'tinted-lens':'Lente tintada','adaptability':'Adaptabilidad','protean':'Multicolor',
+  'huge-power':'Gran poder','pure-power':'Poder puro','sheer-force':'Fuerza bruta',
+  'moxie':'Entusiasmo','inner-focus':'Concentración','sturdy':'Robustez','shell-armor':'Armadura',
+  'clear-body':'Cuerpo puro','liquid-ooze':'Secreción','poison-point':'Tóxico','arena-trap':'Trampa',
+  'shadow-tag':'Sombra','rough-skin':'Piel tosca','iron-barbs':'Zarzas acero',
+  'guts':'Agallas','marvel-scale':'Escamas prodigio','cursed-body':'Cuerpo maldito',
+  'pressure':'Presión','aftermath':'Represalia','frisk':'Fisgón','pickup':'Recoger',
+  'early-bird':'Madrugador','own-tempo':'Ritmo','oblivious':'Despiste','cloud-nine':'Nueve nubes',
+  'air-lock':'Cierre de aire','sand-veil':'Velo arena','snow-cloak':'Manto nieve',
+  'arena-trap':'Trampa arena','magnet-pull':'Magnetismo','illuminate':'Iluminación',
+  'absorbefuego':'Absorbefuego','water-absorb':'Absorbe agua','volt-absorb':'Absorbe volt',
+  'fire-absorb':'Absorbefuego','dry-skin':'Piel seca','storm-drain':'Embudo','lightning-rod':'Pararrayos',
+  'motor-drive':'Turbomotor','sap-sipper':'Herbívoro','water-compaction':'Compactación agua',
 };
 
 const TYPE_CHART = {
@@ -702,7 +727,14 @@ $('btn-import-confirm').addEventListener('click',()=>{
 // ═══════════════════════════════════════════════
 // MODAL EDITOR MI EQUIPO
 // ═══════════════════════════════════════════════
-(function populateNatures(){const sel=$('rs-nature');for(const n of Object.keys(NATURES)){const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);}})();
+(function populateNatures(){
+  const sel=$('rs-nature');
+  const opt0=document.createElement('option');opt0.value='';opt0.textContent='Sin naturaleza (neutra)';sel.appendChild(opt0);
+  for(const n of Object.keys(NATURES)){
+    if(n==='Tímido2') continue; // alias interno
+    const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);
+  }
+})();
 $('rs-nature').addEventListener('change',function(){const[up,dn]=NATURES[this.value]||[null,null];$('nature-hint').textContent=(up||dn)?`+10% ${up||''} | -10% ${dn||''}`:'Naturaleza neutra';});
 document.querySelectorAll('.edit-tab').forEach(btn=>{
   btn.addEventListener('click',function(){
@@ -718,7 +750,7 @@ function buildMoveSlots(){
   for(let i=0;i<4;i++){
     const wrap=document.createElement('div');wrap.className='move-slot-wrap';
     wrap.innerHTML=`<div class="move-slot-label">Movimiento ${i+1}</div>
-      <input type="text" id="ms-input-${i}" class="move-slot-input" placeholder="Busca en español o inglés..." autocomplete="off"/>
+      <input type="text" id="ms-input-${i}" class="move-slot-input" placeholder="Ej: Terremoto, Danza Espada, Mente en Blanco..." autocomplete="off"/>
       <div class="move-slot-info" id="ms-info-${i}"></div>
       <div class="move-suggestions-inner hidden" id="ms-sug-${i}"></div>`;
     container.appendChild(wrap);
@@ -781,12 +813,20 @@ async function openEditModal(idx){
   // ABRIR el modal INMEDIATAMENTE — sin esperar APIs
   $('edit-modal').classList.remove('hidden');
 
-  // Cargar cosas en background (sin bloquear el modal)
-  // 1. Move slots con índice
+  // Move slots — si el índice no está listo, esperar y construir
   if(!STATE.moveIndexES.length){
-    buildMoveIndexES().catch(e=>console.warn(e));
+    buildMoveIndexES().then(()=>{
+      buildMoveSlots();
+      // Restaurar valores guardados tras construir
+      for(let i=0;i<4;i++){
+        const mv=EDIT_BUFFER.moves[i];
+        const inp=$(`ms-input-${i}`);
+        if(inp&&mv?.displayName) inp.value=mv.displayName;
+      }
+    }).catch(e=>{ buildMoveSlots(); console.warn(e); });
+  } else {
+    buildMoveSlots();
   }
-  buildMoveSlots();
   for(let i=0;i<4;i++){
     const mv=EDIT_BUFFER.moves[i];
     const inp=$(`ms-input-${i}`);
@@ -818,10 +858,11 @@ async function loadAbilitiesForPokemon(pkName, savedAbility){
     }
     for(const a of data.abilities){
       const opt=document.createElement('option');
-      const name=a.ability.name.replace(/-/g,' ');
-      opt.value=name;
-      opt.textContent=name+(a.is_hidden?' (Oculta)':'');
-      if(savedAbility&&savedAbility.toLowerCase()===name.toLowerCase()) opt.selected=true;
+      const apiName=a.ability.name;
+      const esName=ABILITY_ES[apiName]||cap(apiName.replace(/-/g,' '));
+      opt.value=esName;
+      opt.textContent=esName+(a.is_hidden?' (Oculta)':'');
+      if(savedAbility&&savedAbility.toLowerCase()===esName.toLowerCase()) opt.selected=true;
       sel.appendChild(opt);
     }
     // Si la habilidad guardada no está en la lista (ej: guardada en español), seleccionar la primera
