@@ -166,6 +166,24 @@ function showToast(msg,dur=2500){
 }
 function cap(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):''; }
 
+// Traducción de tipos al español
+const TYPE_ES = {
+  'normal':'Normal','fire':'Fuego','water':'Agua','electric':'Eléctrico',
+  'grass':'Planta','ice':'Hielo','fighting':'Lucha','poison':'Veneno',
+  'ground':'Tierra','flying':'Volador','psychic':'Psíquico','bug':'Bicho',
+  'rock':'Roca','ghost':'Fantasma','dragon':'Dragón','dark':'Siniestro',
+  'steel':'Acero','fairy':'Hada',
+};
+function typeES(t){ return TYPE_ES[t]||cap(t||''); }
+
+// Traducción de categorías al español  
+const CAT_ES = {
+  'physical':'Físico','special':'Especial','status':'Estado',
+};
+function catES(c){ return CAT_ES[c]||cap(c||''); }
+const TIPOS_ES={'normal':'Normal','fire':'Fuego','water':'Agua','electric':'Electrico','grass':'Planta','ice':'Hielo','fighting':'Lucha','poison':'Veneno','ground':'Tierra','flying':'Volador','psychic':'Psiquico','bug':'Bicho','rock':'Roca','ghost':'Fantasma','dragon':'Dragon','dark':'Siniestro','steel':'Acero','fairy':'Hada'};
+function typeES(t){ return TIPOS_ES[t]||cap(t||''); }
+
 function slugToDisplay(slug){
   const p=slug.split('-');
   const mi=p.indexOf('mega'), pi=p.indexOf('primal');
@@ -345,7 +363,8 @@ async function buildPokemonIndex(){
 }
 
 async function buildMoveIndexES(){
-  $('lab-loading-hint').style.display='block';
+  const hint=$('lab-loading-hint');
+  if(hint) hint.style.display='block';
   try{
     const d=await apiFetch(`${API}/move?limit=950`);
     const BASE_ES={'terremoto':'earthquake','danza espada':'swords-dance','rayo':'thunderbolt','surfeo':'surf','vendetta':'knock-off','puño trueno':'thunder-punch','llamarada':'flamethrower','hidrobomba':'hydro-pump','hoja afilada':'leaf-blade','cabezazo zen':'zen-headbutt','puño hielo':'ice-punch','rayo hielo':'ice-beam','ventisca':'blizzard','trueno':'thunder','rayo solar':'solar-beam','giro bola':'gyro-ball','trampa rocas':'stealth-rock','tóxico':'toxic','protección':'protect','recuperación':'recover','sustituto':'substitute','hipnosis':'hypnosis','esporas':'spore','onda certera':'aura-sphere','puño meteoro':'meteor-mash','psíquico':'psychic','psicocorte':'psycho-cut','triturar':'crunch','bola sombra':'shadow-ball','día soleado':'sunny-day','lluvia danza':'rain-dance','tormenta arena':'sandstorm','granizo':'hail','pantalla de luz':'light-screen','reflejo':'reflect','velo aurora':'aurora-veil','ataque rápido':'quick-attack','danza dragón':'dragon-dance','garra dragón':'dragon-claw','pulso dragón':'dragon-pulse','cometa draco':'draco-meteor','maquinación':'nasty-plot','descanso':'rest','espíritu vital':'wish','bote':'bounce','patada salto alto':'high-jump-kick','combate cercano':'close-combat','embestida ígnea':'flare-blitz','voltio rotación':'volt-switch','giro u':'u-turn','velocidad extrema':'extreme-speed','respiro':'roost','drenadoras':'leech-seed','onda trueno':'thunder-wave','voluntad fuego':'will-o-wisp','infortunio':'taunt','moflete':'encore','shard de hielo':'ice-shard','lanzarrocas':'rock-slide','roca afilada':'stone-edge','avalancha':'avalanche','giro rápido':'rapid-spin','defensa férrea':'iron-defense','picadura':'bug-bite','zumbido':'bug-buzz','x-tijera':'x-scissor','golpe aéreo':'air-slash','pájaro osado':'brave-bird','ala de acero':'steel-wing','colmillo hielo':'ice-fang','colmillo trueno':'thunder-fang','colmillo ígneo':'fire-fang','empujón':'bulldoze','golpe bajo':'sucker-punch','baton pass':'baton-pass','explosión':'explosion','autodestrucción':'self-destruct','tormenta ígnea':'fire-blast','canto mortal':'perish-song','mente en blanco':'calm-mind','nitrocarga':'flame-charge','golpe certero':'smart-strike','cabeza de hierro':'iron-head','garra umbría':'shadow-claw','agilidad':'agility','cola dragón':'dragon-tail','tajo aéreo':'aerial-ace','onda vacía':'vacuum-wave','hiperrayo':'hyper-beam','pulso oscuro':'dark-pulse','zarpazo':'slash'};
@@ -354,7 +373,7 @@ async function buildMoveIndexES(){
     for(const mv of d.results) if(!mi.has(mv.name)) mi.set(mv.name,{display:cap(mv.name.replace(/-/g,' ')),key:mv.name});
     STATE.moveIndexES=Array.from(mi.values());
   }catch(e){console.warn(e);}
-  finally{$('lab-loading-hint').style.display='none';}
+  finally{var _lh=$('lab-loading-hint');if(_lh)_lh.style.display='none';}
 }
 
 // ═══════════════════════════════════════════════
@@ -449,7 +468,7 @@ function renderEnemyGrid(){
     return`<div class="enemy-mini-card${ko?' ko':''}${hasStats?' has-stats':''}" data-index="${i}">
       <img src="${pkData.sprites?.front_default||''}" alt="${pkData.name}"/>
       <span class="enemy-mini-name">${slugToDisplay(pkData.name)}</span>
-      <div class="enemy-mini-types">${enTypes.map(t=>`<span class="type-badge type-${t}">${t}</span>`).join('')}</div>
+      <div class="enemy-mini-types">${enTypes.map(t=>`<span class="type-badge type-${t}">${typeES(t)}</span>`).join('')}</div>
       ${topWeaknesses.length?`<div class="enemy-weakness-row">${topWeaknesses.map(w=>`<span class="weakness-item ${w.multi>=4?'x4':'x2'}">${w.type}${w.multi>=4?' ×4':''}</span>`).join('')}</div>`:''}
       ${hasStats?'<span class="enemy-stats-badge">📊 Stats</span>':''}
       <div class="enemy-mini-actions">
@@ -545,7 +564,7 @@ function renderBestPick({member,score}){
     <img src="${pkData.sprites?.front_default||''}" alt="${pkData.name}"/>
     <div class="best-pick-info">
       <div class="best-pick-name">${slugToDisplay(pkData.name)} ${hasConfig?'⚙️':'📊'}</div>
-      <div class="type-badges" style="margin-bottom:5px;">${types.map(t=>`<span class="type-badge type-${t}">${t}</span>`).join('')}</div>
+      <div class="type-badges" style="margin-bottom:5px;">${types.map(t=>`<span class="type-badge type-${t}">${typeES(t)}</span>`).join('')}</div>
       ${config?.item?`<div class="best-pick-verdict">🎒 ${config.item}</div>`:''}
       <div class="best-pick-score">SPD ${myStats.spd} · Score ${Math.round(score)}pts</div>
       ${movesHtml}
@@ -577,7 +596,7 @@ function renderRanking(scored){
       <img src="${pkData.sprites?.front_default||''}" alt="${pkData.name}"/>
       <div class="ranking-info">
         <span class="ranking-name">${slugToDisplay(pkData.name)} ${hasConfig?'⚙️':'📊'} ${bestKO}</span>
-        <span class="ranking-detail">${types.map(t=>`<span class="type-badge type-${t}" style="font-size:.48rem">${t}</span>`).join('')} SPD ${me.spd}${config?.item?' · '+config.item.slice(0,14):''}</span>
+        <span class="ranking-detail">${types.map(t=>`<span class="type-badge type-${t}" style="font-size:.48rem">${typeES(t)}</span>`).join('')} SPD ${me.spd}${config?.item?' · '+config.item.slice(0,14):''}</span>
       </div>
       <span class="ranking-score ${cls}">${Math.round(score)}pts</span>
     </div>`;
@@ -588,7 +607,7 @@ function renderThreatList(){
   const el=$('enemy-threat-list');const active=STATE.enemyTeam.filter(e=>!e.ko);
   if(!active.length){el.innerHTML='<span style="color:var(--text-dim);font-size:.8rem">Sin rivales activos.</span>';return;}
   const cnt={};for(const{pkData}of active)for(const t of extractTypes(pkData))cnt[t]=(cnt[t]||0)+1;
-  el.innerHTML=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<span class="type-badge type-${t}">${t}${c>1?` ×${c}`:''}</span>`).join('');
+  el.innerHTML=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<span class="type-badge type-${t}">${typeES(t)}${c>1?` ×${c}`:''}</span>`).join('');
 }
 
 // ═══════════════════════════════════════════════
@@ -662,7 +681,7 @@ function renderTeamSlots(){
       const img=document.createElement('img');img.src=pkData.sprites?.front_default||'';img.alt=pkData.name;
       const nameEl=document.createElement('span');nameEl.className='team-slot-name';nameEl.textContent=slugToDisplay(pkData.name);
       const typesEl=document.createElement('div');typesEl.className='team-slot-types';
-      typesEl.innerHTML=extractTypes(pkData).map(t=>`<span class="type-badge type-${t}">${t}</span>`).join('');
+      typesEl.innerHTML=extractTypes(pkData).map(t=>`<span class="type-badge type-${t}">${typeES(t)}</span>`).join('');
       slot.appendChild(img);slot.appendChild(nameEl);slot.appendChild(typesEl);
       const hasConfig=(config?.moves||[]).some(m=>m?.apiName);
       const hasRealStats=config?.realStats&&Object.values(config.realStats).some(v=>v>0);
@@ -750,27 +769,72 @@ function buildMoveSlots(){
   for(let i=0;i<4;i++){
     const wrap=document.createElement('div');wrap.className='move-slot-wrap';
     wrap.innerHTML=`<div class="move-slot-label">Movimiento ${i+1}</div>
-      <input type="text" id="ms-input-${i}" class="move-slot-input" placeholder="Ej: Terremoto, Danza Espada, Mente en Blanco..." autocomplete="off"/>
+      <input type="text" id="ms-input-${i}" class="move-slot-input" placeholder="Ej: Terremoto, Danza Espada, Lanzallamas..." autocomplete="off"/>
       <div class="move-slot-info" id="ms-info-${i}"></div>
       <div class="move-suggestions-inner hidden" id="ms-sug-${i}"></div>`;
     container.appendChild(wrap);
-    const inp=wrap.querySelector(`#ms-input-${i}`),sug=wrap.querySelector(`#ms-sug-${i}`),info=wrap.querySelector(`#ms-info-${i}`);
+    const inp=wrap.querySelector(`#ms-input-${i}`);
+    const sug=wrap.querySelector(`#ms-sug-${i}`);
+    const info=wrap.querySelector(`#ms-info-${i}`);
     let deb=null;
+
     inp.addEventListener('input',()=>{
-      clearTimeout(deb);deb=setTimeout(()=>{
-        const q=inp.value.trim();if(q.length<2){sug.classList.add('hidden');return;}
-        const matches=fuzzy(q,STATE.moveIndexES,8);if(!matches.length){sug.classList.add('hidden');return;}
+      clearTimeout(deb);
+      deb=setTimeout(async()=>{
+        const q=inp.value.trim();
+        if(q.length<2){sug.classList.add('hidden');return;}
+
+        // Buscar primero en índice ES si está disponible
+        let matches=[];
+        if(STATE.moveIndexES.length){
+          matches=fuzzy(q,STATE.moveIndexES,8);
+        }
+
+        // Si no hay resultados en el índice Y tiene 4+ caracteres, buscar en API
+        if(!matches.length && q.length>=4){
+          try{
+            const slug=q.toLowerCase().trim().replace(/ /g,'-');
+            const d=await fetchMoveByApiName(slug);
+            if(d){
+              const namesArr=d.names||[];
+              const nameES=namesArr.find(n=>n.language?.name==='es')?.name||cap(d.name.replace(/-/g,' '));
+              matches=[{display:nameES,key:d.name}];
+            }
+          }catch(e){/* no encontrado */}
+        }
+
+        if(!matches.length){sug.classList.add('hidden');return;}
+
         sug.innerHTML='';
-        for(const m of matches){const item=document.createElement('div');item.className='suggestion-item';item.innerHTML=`<span>${m.display}</span>`;
-          item.addEventListener('click',async()=>{inp.value=m.display;sug.classList.add('hidden');EDIT_BUFFER.moves[i]={apiName:m.key,displayName:m.display};
-            try{const d=await fetchMoveByApiName(m.key);STATE.moveDataCache[m.key]={power:d.power||0,category:d.damage_class?.name||'',type:d.type?.name||'normal'};
-              info.innerHTML=`<span class="type-badge type-${d.type?.name||'normal'}" style="font-size:.52rem;">${d.type?.name||''}</span><span class="move-slot-power">${d.damage_class?.name||''} · Poder: ${d.power||'—'}</span>`;}
-            catch(e){info.innerHTML='<span style="color:var(--neon-red);font-size:.62rem;">⚠️ No cargado</span>';}});
-          sug.appendChild(item);}
+        for(const m of matches){
+          const item=document.createElement('div');
+          item.className='suggestion-item';
+          item.innerHTML=`<span>${m.display}</span>`;
+          item.addEventListener('click',async()=>{
+            inp.value=m.display;
+            sug.classList.add('hidden');
+            EDIT_BUFFER.moves[i]={apiName:m.key,displayName:m.display};
+            try{
+              const d=await fetchMoveByApiName(m.key);
+              STATE.moveDataCache[m.key]={power:d.power||0,category:d.damage_class?.name||'',type:d.type?.name||'normal'};
+              const nameES=d.names?.find(n=>n.language?.name==='es')?.name||m.display;
+              inp.value=nameES;
+              EDIT_BUFFER.moves[i].displayName=nameES;
+              info.innerHTML=`<span class="type-badge type-${d.type?.name||'normal'}" style="font-size:.52rem;">${d.type?.name||''}</span>
+                <span class="move-slot-power">${catES(d.damage_class?.name||'')} · Poder: ${d.power||'—'}</span>`;
+            }catch(e){
+              info.innerHTML='<span style="color:var(--neon-red);font-size:.62rem;">⚠️ No encontrado</span>';
+            }
+          });
+          sug.appendChild(item);
+        }
         sug.classList.remove('hidden');
-      },180);
+      },300);
     });
-    document.addEventListener('click',e=>{if(!wrap.contains(e.target))sug.classList.add('hidden');});
+
+    document.addEventListener('click',e=>{
+      if(!wrap.contains(e.target)) sug.classList.add('hidden');
+    });
   }
 }
 
@@ -992,8 +1056,8 @@ setupAC('cmp-enemy-search','cmp-enemy-suggestions',()=>STATE.pokemonIndex,async(
     disp.innerHTML=`<img src="${pkData.sprites?.front_default||''}" alt="${pkData.name}"/>
       <div class="cmp-enemy-display-info">
         <div class="cmp-enemy-name">${slugToDisplay(pkData.name)}</div>
-        <div class="type-badges">${cmpEnTypes.map(t=>`<span class="type-badge type-${t}">${t}</span>`).join('')}</div>
-        ${cmpTopWk.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">${cmpTopWk.slice(0,6).map(w=>`<span class="weakness-item ${w.multi>=4?'x4':'x2'}" style="font-size:.6rem;">${w.type} ×${w.multi}</span>`).join('')}</div>`:''}
+        <div class="type-badges">${cmpEnTypes.map(t=>`<span class="type-badge type-${t}">${typeES(t)}</span>`).join('')}</div>
+        ${cmpTopWk.length?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">${cmpTopWk.slice(0,6).map(w=>`<span class="weakness-item ${w.multi>=4?'x4':'x2'}" style="font-size:.6rem;">${tipoES(w.type)} ×${w.multi}</span>`).join('')}</div>`:''}
       </div>`;
     $('cmp-enemy-search').value='';
     tryRenderComparison();
@@ -1044,9 +1108,9 @@ function tryRenderComparison(){
     else if(m>=2)   wk.push({type:a,multi:m,cls:'x2'});
     else if(m<=.5)  rs.push({type:a,multi:m,cls:'x0-5'});
   }
-  $('cmp-weakness-list').innerHTML   = wk.length ? wk.map(w=>`<span class="weakness-item ${w.cls}">${w.type} ×${w.multi}</span>`).join('') : '<span style="color:var(--text-dim);font-size:.75rem">Ninguna</span>';
-  $('cmp-resistance-list').innerHTML = rs.length ? rs.map(r=>`<span class="weakness-item x0-5">${r.type} ×${r.multi}</span>`).join('') : '<span style="color:var(--text-dim);font-size:.75rem">Ninguna</span>';
-  $('cmp-immunity-list').innerHTML   = im.length ? im.map(i=>`<span class="type-badge type-${i.type}">${i.type} ✗</span>`).join('') : '<span style="color:var(--text-dim);font-size:.75rem">Ninguna</span>';
+  $('cmp-weakness-list').innerHTML   = wk.length ? wk.map(w=>`<span class="weakness-item ${w.cls}">${tipoES(w.type)} ×${w.multi}</span>`).join('') : '<span style="color:var(--text-dim);font-size:.75rem">Ninguna</span>';
+  $('cmp-resistance-list').innerHTML = rs.length ? rs.map(r=>`<span class="weakness-item x0-5">${tipoES(r.type)} ×${r.multi}</span>`).join('') : '<span style="color:var(--text-dim);font-size:.75rem">Ninguna</span>';
+  $('cmp-immunity-list').innerHTML   = im.length ? im.map(i=>`<span class="type-badge type-${i.type}">${tipoES(i.type)} ✗</span>`).join('') : '<span style="color:var(--text-dim);font-size:.75rem">Ninguna</span>';
   const bdA=evaluateMoves(mA,enemyEntry),bdB=evaluateMoves(mB,enemyEntry);
   const bestA=bdA[0]?.dmg.avg||0,bestB=bdB[0]?.dmg.avg||0;
   const scoreA=scoreVsTeam(mA,[enemyEntry]),scoreB=scoreVsTeam(mB,[enemyEntry]);
@@ -1055,7 +1119,7 @@ function tryRenderComparison(){
     return`<div class="cmp-panel${isWinner?' winner':''}">
       <img src="${pkData.sprites?.front_default||''}" alt="${pkData.name}"/>
       <div class="cmp-panel-name">${slugToDisplay(pkData.name)}</div>
-      <div class="type-badges" style="justify-content:center;margin-bottom:8px;">${extractTypes(pkData).map(t=>`<span class="type-badge type-${t}">${t}</span>`).join('')}</div>
+      <div class="type-badges" style="justify-content:center;margin-bottom:8px;">${extractTypes(pkData).map(t=>`<span class="type-badge type-${t}">${typeES(t)}</span>`).join('')}</div>
       <div style="font-size:.65rem;color:var(--text-secondary);margin-bottom:8px;">SPD ${me.spd}${config?.item?' · '+config.item.slice(0,12):''}</div>
       ${bd.slice(0,4).map(b=>{
         const c=b.dmg.avg>=70?'var(--neon-green)':b.dmg.avg>=40?'var(--neon-cyan)':b.dmg.avg>=20?'var(--neon-yellow)':'var(--neon-red)';
@@ -1141,7 +1205,7 @@ function renderDexCard(data){
   $('dex-sprite-front').src=STATE.dexShowBack?(data.sprites?.back_default||data.sprites?.front_default||''):data.sprites?.front_default||'';
   $('dex-sprite-front').className=`dex-sprite${isMega?' mega':''}`;
   $('dex-name').textContent=dn;$('dex-name').className=`dex-name${isMega?' is-mega':''}`;
-  $('dex-types').innerHTML=types.map(t=>`<span class="type-badge type-${t}">${t}</span>`).join('');
+  $('dex-types').innerHTML=types.map(t=>`<span class="type-badge type-${t}">${typeES(t)}</span>`).join('');
   const fb=$('dex-form-badge');
   if(isMega||['alola','galar','hisui'].some(r=>name.includes('-'+r))){fb.classList.remove('hidden');fb.textContent=isMega?'⚡ Mega/Primal':name.includes('-alola')?'🌺 Alola':name.includes('-galar')?'🌿 Galar':'❄️ Hisui';}
   else fb.classList.add('hidden');
@@ -1152,9 +1216,9 @@ function renderDexCard(data){
   $('dex-stat-total').textContent=total;
   const allT=Object.keys(TYPE_CHART),wk=[],rs=[],im=[];
   for(const a of allT){let m=1;for(const d of types)m*=TYPE_CHART[a]?.[d]??1;if(m===0)im.push({type:a});else if(m>=4)wk.push({type:a,multi:m,cls:'x4'});else if(m>=2)wk.push({type:a,multi:m,cls:'x2'});else if(m<=.5)rs.push({type:a,multi:m,cls:'x0-5'});}
-  $('dex-weaknesses').innerHTML=wk.length?wk.map(w=>`<span class="weakness-item ${w.cls}">${w.type} ×${w.multi}</span>`).join(''):'<span style="color:var(--text-dim);font-size:.8rem">Ninguna</span>';
-  $('dex-resistances').innerHTML=rs.length?rs.map(r=>`<span class="weakness-item x0-5">${r.type} ×${r.multi}</span>`).join(''):'<span style="color:var(--text-dim);font-size:.8rem">Ninguna</span>';
-  $('dex-immunities').innerHTML=im.length?im.map(i=>`<span class="type-badge type-${i.type}">${i.type} ✗</span>`).join(''):'<span style="color:var(--text-dim);font-size:.8rem">Ninguna</span>';
+  $('dex-weaknesses').innerHTML=wk.length?wk.map(w=>`<span class="weakness-item ${w.cls}">${tipoES(w.type)} ×${w.multi}</span>`).join(''):'<span style="color:var(--text-dim);font-size:.8rem">Ninguna</span>';
+  $('dex-resistances').innerHTML=rs.length?rs.map(r=>`<span class="weakness-item x0-5">${tipoES(r.type)} ×${r.multi}</span>`).join(''):'<span style="color:var(--text-dim);font-size:.8rem">Ninguna</span>';
+  $('dex-immunities').innerHTML=im.length?im.map(i=>`<span class="type-badge type-${i.type}">${tipoES(i.type)} ✗</span>`).join(''):'<span style="color:var(--text-dim);font-size:.8rem">Ninguna</span>';
   $('dex-abilities').innerHTML=data.abilities.map(a=>`<div class="dex-ability-item"><span class="dex-ability-name">${a.ability.name.replace(/-/g,' ')}</span>${a.is_hidden?'<span class="dex-ability-hidden">OCULTA</span>':''}</div>`).join('');
   $('dex-card').classList.remove('hidden');
 }
@@ -1363,7 +1427,7 @@ async function renderScannerResults(pokemonList) {
     try {
       const pkData = await apiFetch(`${API}/pokemon/${slug}`);
       const types  = extractTypes(pkData);
-      typeBadges   = types.map(t => `<span class="type-badge type-${t}">${t}</span>`).join('');
+      typeBadges   = types.map(t => `<span class="type-badge type-${t}">${typeES(t)}</span>`).join('');
       const topWk  = Object.keys(TYPE_CHART)
         .map(a => { let m=1; for(const d of types) m *= TYPE_CHART[a]?.[d]??1; return{type:a,multi:m}; })
         .filter(w => w.multi >= 2)
