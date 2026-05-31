@@ -745,53 +745,30 @@ function buildMoveSlots(){
 async function openEditModal(idx){
   STATE.editingIdx=idx;
   const{pkData,config}=STATE.myTeam[idx];
+
+  // Copiar config al buffer
+  EDIT_BUFFER={
+    moves:    JSON.parse(JSON.stringify(config.moves||[null,null,null,null])),
+    realStats:JSON.parse(JSON.stringify(config.realStats||{})),
+    nature:   config.nature   ||'',
+    ability:  config.ability  ||'',
+    item:     config.item     ||'',
+    role:     config.role     ||'',
+    strategy: config.strategy ||'',
+    note:     config.note     ||'',
+  };
+
+  // Rellenar cabecera
   $('edit-sprite').src=pkData.sprites?.front_default||'';
   $('edit-name').textContent=slugToDisplay(pkData.name);
-  EDIT_BUFFER=JSON.parse(JSON.stringify({
-    moves:   config.moves    || [null,null,null,null],
-    realStats: config.realStats || {},
-    nature:  config.nature   || '',
-    ability: config.ability  || '',
-    item:    config.item     || '',
-    role:    config.role     || '',
-    strategy:config.strategy || '',
-    note:    config.note     || '',
-  }));
 
-  // FIX 1: Construir move slots — esperar a que moveIndexES esté listo
-  if(!STATE.moveIndexES.length){
-    showToast('⏳ Cargando movimientos...');
-    try{ await buildMoveIndexES(); }catch(e){ console.warn('moveIndex error:',e); }
-  }
-  buildMoveSlots();
-
-  // Rellenar move inputs con datos guardados
-  for(let i=0;i<4;i++){
-    const mv=EDIT_BUFFER.moves[i];
-    const inp=$(`ms-input-${i}`);
-    if(inp) inp.value=mv?.displayName||'';
-    if(mv?.apiName){
-      const c=STATE.moveDataCache[mv.apiName];
-      const info=$(`ms-info-${i}`);
-      if(c&&info) info.innerHTML=`<span class="type-badge type-${c.type}" style="font-size:.52rem;">${c.type}</span><span class="move-slot-power">${c.category} · Poder: ${c.power||'—'}</span>`;
-    }
-  }
-
-  // Stats
+  // Rellenar stats ANTES de abrir (sin await)
   const rs=EDIT_BUFFER.realStats;
   $('rs-hp').value=rs.hp||'';$('rs-atk').value=rs.atk||'';$('rs-def').value=rs.def||'';
   $('rs-spatk').value=rs.spatk||'';$('rs-spdef').value=rs.spdef||'';$('rs-spd').value=rs.spd||'';
   $('rs-nature').value=EDIT_BUFFER.nature||'';
   const[up,dn]=NATURES[EDIT_BUFFER.nature]||[null,null];
   $('nature-hint').textContent=(up||dn)?`+10% ${up||''} | -10% ${dn||''}`:'';
-
-  // FIX 2: Cargar habilidades reales del Pokémon desde la API
-  await loadAbilitiesForPokemon(pkData.name, EDIT_BUFFER.ability);
-
-  // FIX 3: Inicializar autocomplete de objetos
-  setupItemAutocomplete();
-
-  // Build
   $('rs-item').value=EDIT_BUFFER.item||'';
   $('rs-role').value=EDIT_BUFFER.role||'';
   $('rs-strategy').value=EDIT_BUFFER.strategy||'';
@@ -800,7 +777,30 @@ async function openEditModal(idx){
   // Activar primera tab
   document.querySelectorAll('.edit-tab').forEach((b,i)=>b.classList.toggle('active',i===0));
   document.querySelectorAll('.edit-tab-content').forEach((c,i)=>c.classList.toggle('hidden',i!==0));
+
+  // ABRIR el modal INMEDIATAMENTE — sin esperar APIs
   $('edit-modal').classList.remove('hidden');
+
+  // Cargar cosas en background (sin bloquear el modal)
+  // 1. Move slots con índice
+  if(!STATE.moveIndexES.length){
+    buildMoveIndexES().catch(e=>console.warn(e));
+  }
+  buildMoveSlots();
+  for(let i=0;i<4;i++){
+    const mv=EDIT_BUFFER.moves[i];
+    const inp=$(`ms-input-${i}`);
+    if(inp) inp.value=mv?.displayName||'';
+    if(mv?.apiName){
+      const c=STATE.moveDataCache[mv.apiName];
+      const info=$(`ms-info-${i}`);
+      if(c&&info) info.innerHTML=`<span class="type-badge type-${c.type}" style="font-size:.52rem;">${c.type}</span><span class="move-slot-power">${c.category} · ${c.power||'—'}</span>`;
+    }
+  }
+
+  // 2. Habilidades y autocomplete item (en background)
+  setupItemAutocomplete();
+  loadAbilitiesForPokemon(pkData.name, EDIT_BUFFER.ability).catch(e=>console.warn(e));
 }
 
 // FIX 2: Carga habilidades reales del Pokémon en el <select>
