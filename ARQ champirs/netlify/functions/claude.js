@@ -1,6 +1,4 @@
 // netlify/functions/claude.js
-// Lee la API key desde variable de entorno — segura y no expuesta en GitHub
-
 const https = require('https');
 
 exports.handler = async (event) => {
@@ -26,17 +24,22 @@ exports.handler = async (event) => {
     'Content-Type': 'application/json',
   };
 
-  try {
-    const API_KEY = process.env.ANTHROPIC_API_KEY;
-    if (!API_KEY) {
-      return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'API key no configurada' }) };
-    }
+  const API_KEY = process.env.ANTHROPIC_API_KEY;
 
+  if (!API_KEY) {
+    return {
+      statusCode: 500,
+      headers: CORS,
+      body: JSON.stringify({ error: 'API key no configurada en variables de entorno' }),
+    };
+  }
+
+  try {
     const body = JSON.parse(event.body);
 
     const payload = JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: body.max_tokens || 1000,
+      max_tokens: body.max_tokens || 800,
       messages: body.messages,
     });
 
@@ -57,8 +60,11 @@ exports.handler = async (event) => {
         let raw = '';
         res.on('data', chunk => raw += chunk);
         res.on('end', () => {
-          try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
-          catch(e) { reject(new Error('Respuesta invalida: ' + raw.slice(0, 200))); }
+          try {
+            resolve({ status: res.statusCode, body: JSON.parse(raw) });
+          } catch(e) {
+            reject(new Error('Respuesta invalida: ' + raw.slice(0, 300)));
+          }
         });
       });
 
@@ -71,13 +77,20 @@ exports.handler = async (event) => {
       return {
         statusCode: data.status,
         headers: CORS,
-        body: JSON.stringify({ error: data.body?.error?.message || JSON.stringify(data.body) }),
+        body: JSON.stringify({
+          error: data.body?.error?.message || JSON.stringify(data.body)
+        }),
       };
     }
 
-    return { statusCode: 200, headers: CORS, body: JSON.stringify(data.body) };
+    return {
+      statusCode: 200,
+      headers: CORS,
+      body: JSON.stringify(data.body),
+    };
 
   } catch (err) {
-    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
-  }
-};
+    return {
+      statusCode: 500,
+      headers: CORS,
+      b
