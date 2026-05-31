@@ -648,7 +648,14 @@ function renderTeamSlots(){
       slot.appendChild(rb);
       const btnRow=document.createElement('div');btnRow.className='slot-btn-row';
       const editBtn=document.createElement('button');editBtn.className=`team-slot-btn${hasConfig||hasRealStats?' has-config':''}`;editBtn.textContent='✏️';editBtn.title='Editar configuración';
-      editBtn.addEventListener('click',e=>{e.stopPropagation();openEditModal(i);});
+      editBtn.addEventListener('click',e=>{
+    e.stopPropagation();
+    openEditModal(i).catch(err=>{
+      console.error('Error abriendo modal:',err);
+      showToast('⚠️ Error al abrir editor. Intenta de nuevo.');
+      setLoading(false);
+    });
+  });
       btnRow.appendChild(editBtn);slot.appendChild(btnRow);
       slot.addEventListener('dragstart',()=>{dragSrc=i;setTimeout(()=>slot.classList.add('dragging'),0);});
       slot.addEventListener('dragend',()=>slot.classList.remove('dragging'));
@@ -753,8 +760,8 @@ async function openEditModal(idx){
 
   // FIX 1: Construir move slots — esperar a que moveIndexES esté listo
   if(!STATE.moveIndexES.length){
-    showToast('⏳ Cargando índice de movimientos...');
-    await buildMoveIndexES();
+    showToast('⏳ Cargando movimientos...');
+    try{ await buildMoveIndexES(); }catch(e){ console.warn('moveIndex error:',e); }
   }
   buildMoveSlots();
 
@@ -803,7 +810,7 @@ async function loadAbilitiesForPokemon(pkName, savedAbility){
   sel.innerHTML='<option value="">Selecciona una habilidad...</option>';
   loadingEl.classList.remove('hidden');
   try{
-    const data=await fetchPokemon(pkName);
+    const data=await apiFetch(`https://pokeapi.co/api/v2/pokemon/${pkName.toLowerCase()}`,5000);
     loadingEl.classList.add('hidden');
     if(!data.abilities||!data.abilities.length){
       sel.innerHTML='<option value="">Sin habilidades disponibles</option>';
